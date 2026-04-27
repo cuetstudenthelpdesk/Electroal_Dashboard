@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Electoral Map - Analytics Portal{% endblock %}
+{% block page_title %}Electoral Map{% endblock %}
+
+{% block content %}
+<div class="dashboard-section" style="padding: 0; overflow: hidden;">
+    <iframe
+        src="{{ shiny_url }}"
+        title="Electoral Map"
+        style="width: 100%; min-height: 82vh; border: 0;"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+    ></iframe>
+</div>
+{% endblock %}

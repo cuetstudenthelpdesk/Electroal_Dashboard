@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Hierarchy - Analytics Portal{% endblock %}
+{% block page_title %}Hierarchy{% endblock %}
+
+{% block content %}
+{% if hierarchy_error %}
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2><i class="fas fa-triangle-exclamation"></i> Hierarchy Data Error</h2>
+    </div>
+    <p style="color:#c0392b; font-weight:600;">{{ hierarchy_error }}</p>
+    <p style="color:#7f8c8d;">Check the Excel file path and required columns, then refresh.</p>
+</div>
+{% else %}
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2><i class="fas fa-filter"></i> Hierarchy Filters</h2>
+        <div class="section-actions">
+            <button class="btn-icon" id="resetFiltersBtn" title="Reset filters">
+                <i class="fas fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="filters-grid">
+        <div class="filter-item">
+            <label for="regionSelect">1. Region</label>
+            <select id="regionSelect"></select>
+        </div>
+        <div class="filter-item">
+            <label for="districtSelect">2. District</label>
+            <select id="districtSelect"></select>
+        </div>
+        <div class="filter-item">
+            <label for="constituencySelect">3. Constituency</label>
+            <select id="constituencySelect"></select>
+        </div>
+    </div>
+</div>
+
+<div class="metrics-grid">
+    <div class="metric-card card-1">
+        <div class="metric-icon"><i class="fas fa-map-pin"></i></div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="kpiBooths">0</h3>
+            <p class="metric-label">Polling Booths</p>
+        </div>
+    </div>
+    <div class="metric-card card-2">
+        <div class="metric-icon"><i class="fas fa-landmark"></i></div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="kpiConstituencies">0</h3>
+            <p class="metric-label">Constituencies</p>
+        </div>
+    </div>
+    <div class="metric-card card-3">
+        <div class="metric-icon"><i class="fas fa-map"></i></div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="kpiDistricts">0</h3>
+            <p class="metric-label">Districts</p>
+        </div>
+    </div>
+    <div class="metric-card card-4">
+        <div class="metric-icon"><i class="fas fa-users"></i></div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="kpiRows">0</h3>
+            <p class="metric-label">Contact Rows</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2><i class="fas fa-table"></i> Constituency-wise Booth Contacts</h2>
+        <div class="section-actions">
+            <button class="btn-icon" id="exportCsvBtn" title="Export CSV">
+                <i class="fas fa-file-csv"></i>
+            </button>
+            <button class="btn-icon" onclick="window.print()" title="Print">
+                <i class="fas fa-print"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table" id="hierarchyTable">
+            <thead>
+                <tr>
+                    <th>Region</th>
+                    <th>District</th>
+                    <th>Constituency</th>
+                    <th>Polling Booth Address</th>
+                    <th>Booth Pramukh</th>
+                    <th>Mobile Number</th>
+                    <th>Panna Pramukhs</th>
+                </tr>
+            </thead>
+            <tbody id="hierarchyTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const sourceRows = {{ hierarchy_rows | tojson }};
+const regionSelect = document.getElementById('regionSelect');
+const districtSelect = document.getElementById('districtSelect');
+const constituencySelect = document.getElementById('constituencySelect');
+const tableBody = document.getElementById('hierarchyTableBody');
+
+function fmt(n) {
+    return Number(n || 0).toLocaleString();
+}
+
+function uniqueSorted(values) {
+    return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function fillSelect(selectEl, values, selected = '') {
+    const options = ['<option value="">All</option>'].concat(
+        values.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`)
+    );
+    selectEl.innerHTML = options.join('');
+    selectEl.value = selected;
+}
+
+function getFilteredRows() {
+    const region = regionSelect.value;
+    const district = districtSelect.value;
+    const constituency = constituencySelect.value;
+
+    return sourceRows.filter(r => {
+        if (region && r.region !== region) return false;
+        if (district && r.district !== district) return false;
+        if (constituency && r.constituency !== constituency) return false;
+        return true;
+    });
+}
+
+function rebuildDistricts() {
+    const region = regionSelect.value;
+    const districtCurrent = districtSelect.value;
+    const districts = uniqueSorted(
+        sourceRows
+            .filter(r => !region || r.region === region)
+            .map(r => r.district)
+    );
+    fillSelect(districtSelect, districts, districts.includes(districtCurrent) ? districtCurrent : '');
+}
+
+function rebuildConstituencies() {
+    const region = regionSelect.value;
+    const district = districtSelect.value;
+    const constituencyCurrent = constituencySelect.value;
+    const constituencies = uniqueSorted(
+        sourceRows
+            .filter(r => (!region || r.region === region) && (!district || r.district === district))
+            .map(r => r.constituency)
+    );
+    fillSelect(
+        constituencySelect,
+        constituencies,
+        constituencies.includes(constituencyCurrent) ? constituencyCurrent : ''
+    );
+}
+
+function renderTable(rows) {
+    if (!rows.length) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#7f8c8d;">No records found</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = rows.map(r => `
+        <tr>
+            <td><strong>${r.region || '-'}</strong></td>
+            <td>${r.district || '-'}</td>
+            <td>${r.constituency || '-'}</td>
+            <td>${r.booth_address || '-'}</td>
+            <td>${r.booth_pramukh || '-'}</td>
+            <td>${r.mobile_number || '-'}</td>
+            <td>${r.panna_pramukhs || '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function updateKpis(rows) {
+    document.getElementById('kpiBooths').textContent = fmt(new Set(rows.map(r => r.booth_address)).size);
+    document.getElementById('kpiConstituencies').textContent = fmt(new Set(rows.map(r => r.constituency)).size);
+    document.getElementById('kpiDistricts').textContent = fmt(new Set(rows.map(r => r.district)).size);
+    document.getElementById('kpiRows').textContent = fmt(rows.length);
+}
+
+function refreshView() {
+    const rows = getFilteredRows();
+    renderTable(rows);
+    updateKpis(rows);
+}
+
+function initialize() {
+    fillSelect(regionSelect, uniqueSorted(sourceRows.map(r => r.region)));
+    rebuildDistricts();
+    rebuildConstituencies();
+    refreshView();
+}
+
+regionSelect.addEventListener('change', () => {
+    rebuildDistricts();
+    rebuildConstituencies();
+    refreshView();
+});
+
+districtSelect.addEventListener('change', () => {
+    rebuildConstituencies();
+    refreshView();
+});
+
+constituencySelect.addEventListener('change', refreshView);
+
+document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+    regionSelect.value = '';
+    rebuildDistricts();
+    rebuildConstituencies();
+    refreshView();
+});
+
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const rows = getFilteredRows();
+    if (!rows.length) return;
+
+    const headers = [
+        'Region','District','Constituency','Polling Booth Address',
+        'Booth Pramukh','Mobile Number','Panna Pramukhs'
+    ];
+    const csvRows = [headers.join(',')].concat(rows.map(r => ([
+        r.region, r.district, r.constituency, r.booth_address,
+        r.booth_pramukh, r.mobile_number, r.panna_pramukhs
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(','))));
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'hierarchy_contacts.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+initialize();
+</script>
+
+<style>
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.filter-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.filter-item select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0 10px;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.filter-item select:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+}
+
+#hierarchyTable td:nth-child(7) {
+    max-width: 420px;
+    white-space: normal;
+    word-break: break-word;
+}
+</style>
+{% endif %}
+{% endblock %}

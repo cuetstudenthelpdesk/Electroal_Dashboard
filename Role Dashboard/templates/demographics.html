@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Demographics - Analytics Portal{% endblock %}
+{% block page_title %}Demographic Details{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="metrics-grid">
+    <div class="metric-card card-1">
+        <div class="metric-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value">{{ "{:,}".format(data.total_population) }}</h3>
+            <p class="metric-label">Total Population</p>
+        </div>
+    </div>
+
+    <div class="metric-card card-2">
+        <div class="metric-icon">
+            <i class="fas fa-vote-yea"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value">{{ "{:,}".format(data.total_voters) }}</h3>
+            <p class="metric-label">Registered Voters</p>
+        </div>
+    </div>
+
+    <div class="metric-card card-3">
+        <div class="metric-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value">{{ data.avg_turnout }}</h3>
+            <p class="metric-label">Average Turnout</p>
+        </div>
+    </div>
+
+    <div class="metric-card card-4">
+        <div class="metric-icon">
+            <i class="fas fa-map-marked-alt"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value">{{ data.demographics|length }}</h3>
+            <p class="metric-label">Total Districts</p>
+        </div>
+    </div>
+</div>
+
+<!-- Demographics Table -->
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2>
+            <i class="fas fa-table"></i>
+            District-wise Demographics
+        </h2>
+        <div class="section-actions">
+            <button class="btn-icon" onclick="exportToCSV()" title="Export to CSV">
+                <i class="fas fa-file-csv"></i>
+            </button>
+            <button class="btn-icon" onclick="printTable()" title="Print">
+                <i class="fas fa-print"></i>
+            </button>
+            <button class="btn-icon" onclick="refreshData()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table" id="demographicsTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">District <i class="fas fa-sort"></i></th>
+                    <th onclick="sortTable(1)">Population <i class="fas fa-sort"></i></th>
+                    <th onclick="sortTable(2)">Registered Voters <i class="fas fa-sort"></i></th>
+                    <th onclick="sortTable(3)">Turnout Rate <i class="fas fa-sort"></i></th>
+                    <th onclick="sortTable(4)">Growth <i class="fas fa-sort"></i></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for demo in data.demographics %}
+                <tr>
+                    <td><strong>{{ demo.district }}</strong></td>
+                    <td>{{ "{:,}".format(demo.population) }}</td>
+                    <td>{{ "{:,}".format(demo.voters) }}</td>
+                    <td>
+                        <span class="badge badge-success">{{ demo.turnout }}</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-info">{{ demo.growth }}</span>
+                    </td>
+                    <td>
+                        <button class="btn-small" onclick="viewDetails('{{ demo.district }}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Chart Section -->
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2>
+            <i class="fas fa-chart-bar"></i>
+            Voter Distribution Chart
+        </h2>
+    </div>
+    <div class="chart-container">
+        <canvas id="votersChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart
+const ctx = document.getElementById('votersChart').getContext('2d');
+const votersChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [{% for demo in data.demographics %}'{{ demo.district }}',{% endfor %}],
+        datasets: [{
+            label: 'Registered Voters',
+            data: [{% for demo in data.demographics %}{{ demo.voters }},{% endfor %}],
+            backgroundColor: 'rgba(255, 107, 53, 0.6)',
+            borderColor: 'rgba(255, 107, 53, 1)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Sort table function
+function sortTable(columnIndex) {
+    const table = document.getElementById('demographicsTable');
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const isAscending = table.dataset.sortOrder === 'asc';
+    
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.replace(/[^0-9.]/g, '');
+        const bValue = b.cells[columnIndex].textContent.replace(/[^0-9.]/g, '');
+        
+        const aNum = parseFloat(aValue) || aValue;
+        const bNum = parseFloat(bValue) || bValue;
+        
+        if (aNum < bNum) return isAscending ? -1 : 1;
+        if (aNum > bNum) return isAscending ? 1 : -1;
+        return 0;
+    });
+    
+    table.querySelector('tbody').innerHTML = '';
+    rows.forEach(row => table.querySelector('tbody').appendChild(row));
+    
+    table.dataset.sortOrder = isAscending ? 'desc' : 'asc';
+}
+
+// Export to CSV
+function exportToCSV() {
+    alert('Exporting to CSV...');
+    // Add actual CSV export logic here
+}
+
+// Print table
+function printTable() {
+    window.print();
+}
+
+// Refresh data
+function refreshData() {
+    location.reload();
+}
+
+// View details
+function viewDetails(district) {
+    alert(`Viewing details for ${district}`);
+    // Add modal or navigation logic here
+}
+</script>
+
+<style>
+.chart-container {
+    height: 400px;
+    padding: 20px;
+}
+</style>
+{% endblock %}

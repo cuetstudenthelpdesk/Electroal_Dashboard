@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Analytics Portal{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<!-- Key Metrics Section -->
+<div class="metrics-grid">
+    <div class="metric-card card-1">
+        <div class="metric-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" data-target="{{ data.total_users }}">0</h3>
+            <p class="metric-label">Total Users</p>
+        </div>
+        <div class="metric-trend up">
+            <i class="fas fa-arrow-up"></i> 12%
+        </div>
+    </div>
+
+    <div class="metric-card card-2">
+        <div class="metric-icon">
+            <i class="fas fa-signal"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" data-target="{{ data.active_sessions }}">0</h3>
+            <p class="metric-label">Active Sessions</p>
+        </div>
+        <div class="metric-trend up">
+            <i class="fas fa-arrow-up"></i> 8%
+        </div>
+    </div>
+
+    <div class="metric-card card-3">
+        <div class="metric-icon">
+            <i class="fas fa-map-marked-alt"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" data-target="{{ data.total_districts }}">0</h3>
+            <p class="metric-label">Total Districts</p>
+        </div>
+        <div class="metric-trend stable">
+            <i class="fas fa-minus"></i> 0%
+        </div>
+    </div>
+
+    <div class="metric-card card-4">
+        <div class="metric-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" data-target="{{ data.pending_tasks }}">0</h3>
+            <p class="metric-label">Pending Tasks</p>
+        </div>
+        <div class="metric-trend down">
+            <i class="fas fa-arrow-down"></i> 5%
+        </div>
+    </div>
+</div>
+
+<!-- Two Column Layout -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div class="left-column">
+        <!-- Demographics Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-chart-pie"></i>
+                    Demographic Details
+                </h2>
+                <div class="section-actions">
+                    <button class="btn-icon" title="Download CSV">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn-icon" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>District</th>
+                            <th>Population</th>
+                            <th>Registered Voters</th>
+                            <th>Turnout Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for demo in data.demographics %}
+                        <tr>
+                            <td><strong>{{ demo.district }}</strong></td>
+                            <td>{{ "{:,}".format(demo.population) }}</td>
+                            <td>{{ "{:,}".format(demo.voters) }}</td>
+                            <td>
+                                <span class="badge badge-success">{{ demo.turnout }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Party Hierarchy Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-sitemap"></i>
+                    Party Hierarchy
+                </h2>
+            </div>
+            <div class="hierarchy-container">
+                {% for member in data.party_hierarchy %}
+                <div class="hierarchy-card">
+                    <div class="hierarchy-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="hierarchy-info">
+                        <h4>{{ member.name }}</h4>
+                        <p class="hierarchy-position">{{ member.position }}</p>
+                        <p class="hierarchy-contact">
+                            <i class="fas fa-phone"></i> {{ member.contact }}
+                        </p>
+                    </div>
+                    <div class="hierarchy-actions">
+                        <button class="btn-small">
+                            <i class="fas fa-envelope"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="right-column">
+        <!-- Support Team Section -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-headset"></i>
+                    Support Team
+                </h2>
+                <span class="status-indicator online">
+                    <i class="fas fa-circle"></i> Online
+                </span>
+            </div>
+            <div class="support-container">
+                {% for member in data.support_team %}
+                <div class="support-card">
+                    <div class="support-header">
+                        <div class="support-avatar">
+                            <img src="https://ui-avatars.com/api/?name={{ member.name }}&background=ff6b35&color=fff" alt="{{ member.name }}">
+                            <span class="status-dot {{ 'available' if member.status == 'Available' else 'busy' }}"></span>
+                        </div>
+                        <div class="support-info">
+                            <h4>{{ member.name }}</h4>
+                            <p class="support-role">{{ member.role }}</p>
+                        </div>
+                    </div>
+                    <div class="support-details">
+                        <p class="support-email">
+                            <i class="fas fa-envelope"></i> {{ member.email }}
+                        </p>
+                        <span class="support-status {{ 'status-available' if member.status == 'Available' else 'status-busy' }}">
+                            {{ member.status }}
+                        </span>
+                    </div>
+                    <div class="support-actions">
+                        <button class="btn-primary btn-small">
+                            <i class="fas fa-comment"></i> Chat
+                        </button>
+                        <button class="btn-secondary btn-small">
+                            <i class="fas fa-phone"></i> Call
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Stats Card -->
+        <div class="dashboard-section quick-stats">
+            <div class="section-header">
+                <h2>
+                    <i class="fas fa-bolt"></i>
+                    Quick Stats
+                </h2>
+            </div>
+            <div class="stats-list">
+                <div class="stat-row">
+                    <span class="stat-label">System Uptime</span>
+                    <span class="stat-value">99.8%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Response Time</span>
+                    <span class="stat-value">142ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Database Size</span>
+                    <span class="stat-value">2.4 GB</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Active Users Today</span>
+                    <span class="stat-value">487</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Feed -->
+<div class="dashboard-section activity-section">
+    <div class="section-header">
+        <h2>
+            <i class="fas fa-history"></i>
+            Recent Activity
+        </h2>
+    </div>
+    <div class="activity-feed">
+        <div class="activity-item">
+            <div class="activity-icon bg-success">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="activity-content">
+                <p><strong>New user registered</strong></p>
+                <span class="activity-time">5 minutes ago</span>
+            </div>
+        </div>
+        <div class="activity-item">
+            <div class="activity-icon bg-warning">
+                <i class="fas fa-edit"></i>
+            </div>
+            <div class="activity-content">
+                <p><strong>District data updated</strong></p>
+                <span class="activity-time">15 minutes ago</span>
+            </div>
+        </div>
+        <div class="activity-item">
+            <div class="activity-icon bg-info">
+                <i class="fas fa-file-export"></i>
+            </div>
+            <div class="activity-content">
+                <p><strong>Report generated</strong></p>
+                <span class="activity-time">1 hour ago</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
